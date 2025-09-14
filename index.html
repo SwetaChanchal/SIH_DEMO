@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aapda Sathi: Your Partner in Preparedness</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Midnight Blue, Teal & Electric Orange -->
+    <!-- Application Structure Plan: The SPA is structured as a guided training journey. 1. Hero sets the mission. 2. "Why It Matters" establishes the context. 3. "Your Mission HQ" outlines the tools. 4. The "Gamified Learning Module" is the core interactive experience. 5. This is followed by the "Live Drill" with an AI Debrief. 6. "Urgent Contacts" and new, more powerful "AI Tools" serve as resources. -->
+    <!-- Visualization & Content Choices: 1. Gamified Module -> Goal: Teach through action -> Presentation: Interactive Drag-and-Drop game. 2. Virtual Drill -> Goal: Test reflexes & provide AI feedback -> Presentation: Timed cards with a dynamic, AI-generated summary. 3. AI Tools -> Goal: Provide practical, personalized utilities -> Presentation: New cards for Family Plan & Crisis Comms. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: #0c1427; /* Midnight Blue base */
+            background: linear-gradient(170deg, #0c1427 0%, #102a43 50%, #004d40 100%);
+            color: #f0f4f8; /* Light slate for text */
+        }
+        .nav-button { position: relative; transition: color 0.3s; }
+        .nav-button::after { content: ''; position: absolute; width: 0; height: 2px; bottom: -4px; left: 50%; transform: translateX(-50%); background-color: #ff8f00; transition: width 0.3s; }
+        .nav-button:hover, .nav-button.active { color: #ff8f00; }
+        .nav-button:hover::after, .nav-button.active::after { width: 100%; }
+        .glass-header { background-color: rgba(12, 20, 39, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .card { 
+            background-color: rgba(16, 42, 67, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
+            backdrop-filter: blur(5px);
+        }
+        .card:hover { 
+            transform: translateY(-8px); 
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+            background-color: rgba(16, 42, 67, 0.9);
+        }
+        .gemini-response { white-space: pre-wrap; background-color: #0c1427; border-radius: 0.5rem; padding: 1.5rem; margin-top: 1.5rem; min-height: 150px; line-height: 1.7; color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); }
+        .loader { border: 4px solid #4a5568; border-top: 4px solid #ff8f00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #drill-container { background: transparent; }
+        .drill-card { min-height: 450px; transition: all 0.5s ease-in-out; }
+        .drill-choice-btn { border: 2px solid #4db6ac; color: #e2e8f0; background-color: transparent; transition: all 0.3s; }
+        .drill-choice-btn:hover { background-color: #ff8f00; border-color: #ff8f00; color: white; }
+        .drill-choice-btn.correct { background-color: #2e7d32; border-color: #2e7d32; color: white; }
+        .drill-choice-btn.incorrect { background-color: #d32f2f; border-color: #d32f2f; color: white; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
+        .shake-effect { animation: shake 0.5s linear; }
+
+        /* Gamified Module Styles */
+        .mission-progress-bar-bg { background-color: rgba(0,0,0,0.3); }
+        .mission-progress-bar { transition: width 0.5s ease-in-out; }
+        .mission-step { perspective: 1000px; }
+        .mission-step-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .mission-step.is-flipped .mission-step-inner { transform: rotateY(180deg); }
+        .mission-step-front, .mission-step-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; border-radius: 1rem; }
+        .mission-step-front { background-color: rgba(16, 42, 67, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); color: #f0f4f8; }
+        .mission-step-back { background-color: #2e7d32; color: white; transform: rotateY(180deg); }
+        .draggable-item { cursor: grab; background-color: #1e293b; border-radius: 0.5rem; padding: 0.75rem; color: #e2e8f0; }
+        .draggable-item.dragging { opacity: 0.5; }
+        #emergency-kit-dropzone { border: 3px dashed rgba(255, 255, 255, 0.3); transition: all 0.3s; }
+        #emergency-kit-dropzone.drag-over { background-color: rgba(255, 255, 255, 0.1); border-color: #ff8f00; }
+        #emergency-kit-dropzone.item-dropped { background-color: rgba(46, 125, 50, 0.2); border-color: #2e7d32; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="glass-header sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-3xl font-extrabold text-slate-100">
+                Aapda<span class="text-orange-400"> Sathi</span>
+            </h1>
+            <div class="hidden md:flex items-center space-x-8 font-semibold text-slate-300">
+                <a href="#problem" class="nav-button">Why It Matters</a>
+                <a href="#solution" class="nav-button">Your Mission HQ</a>
+                <a href="#gamified-mission" class="nav-button">Learning Missions</a>
+                <a href="#virtual-drill" class="nav-button">Practice Drill</a>
+                <a href="#ai-tools" class="nav-button">AI Tools</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="text-center py-20 lg:py-32 bg-transparent">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">Become a Champion for Safety.</h2>
+                <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto">Aapda Sathi is your partner in building a safer future, turning knowledge into confidence and practice into life-saving skills.</p>
+                <a href="#gamified-mission" class="mt-8 inline-block bg-orange-500 text-white font-bold text-lg py-4 px-8 rounded-lg shadow-lg hover:bg-orange-600 transition duration-300 transform hover:scale-105">
+                    Start Your First Mission
+                </a>
+            </div>
+        </section>
+
+        <section id="problem" class="py-20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h3 class="text-4xl font-bold mb-3 text-white">Why This Matters</h3>
+                    <p class="text-slate-300 max-w-3xl mx-auto text-lg">In India, disaster management plans often remain on paper. This gap between policy and practice leaves our communities vulnerable. We're here to change that by turning plans into action.</p>
+                </div>
+                <div class="max-w-4xl mx-auto card p-8 rounded-2xl shadow-2xl">
+                    <canvas id="preparednessChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="solution" class="py-20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h3 class="text-4xl font-bold mb-3 text-white">Your Mission HQ</h3>
+                    <p class="text-slate-300 max-w-3xl mx-auto text-lg">Aapda Sathi provides everything you need to build a culture of safety, because preparedness is about people, not just plans.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="card p-8 rounded-2xl text-center"><h4 class="text-2xl font-bold mb-3 text-orange-400">Learning Missions</h4><p class="text-slate-300">Master safety skills through fun, story-driven games and challenges that make learning stick.</p></div>
+                    <div class="card p-8 rounded-2xl text-center"><h4 class="text-2xl font-bold mb-3 text-orange-400">Realistic Drills</h4><p class="text-slate-300">Practice your response in safe, life-like simulations to build confidence for real-world events.</p></div>
+                    <div class="card p-8 rounded-2xl text-center"><h4 class="text-2xl font-bold mb-3 text-orange-400">Crisis Connect</h4><p class="text-slate-300">Stay informed and connected with instant alerts and clear communication channels when it matters most.</p></div>
+                    <div class="card p-8 rounded-2xl text-center"><h4 class="text-2xl font-bold mb-3 text-orange-400">Smart Insights</h4><p class="text-slate-300">A clear dashboard for administrators to track progress and build a truly resilient campus community.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="gamified-mission" class="py-20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h3 class="text-4xl font-bold mb-3 text-white">Your First Mission: Flood Ready</h3>
+                    <p class="text-slate-300 max-w-3xl mx-auto text-lg">A flood warning has been issued for Dehradun. Help Rohan prepare his family's emergency kit. Complete all steps to earn your badge!</p>
+                </div>
+                <div class="max-w-4xl mx-auto mb-8">
+                    <div class="w-full mission-progress-bar-bg rounded-full h-4"><div id="mission-progress-bar" class="bg-orange-500 h-4 rounded-full mission-progress-bar" style="width: 0%"></div></div>
+                </div>
+                <div class="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <div class="lg:col-span-2 card p-8 rounded-2xl shadow-2xl">
+                        <h4 class="text-2xl font-bold mb-1 text-white">Step 1: Pack the Emergency Kit</h4>
+                        <p class="text-slate-300 mb-6">Drag the essential items into the kit. You need 5 correct items.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div id="items-source" class="space-y-4">
+                                <div class="draggable-item" draggable="true" data-item="correct">First-Aid Kit</div>
+                                <div class="draggable-item" draggable="true" data-item="incorrect">Video Game</div>
+                                <div class="draggable-item" draggable="true" data-item="correct">Water Bottles</div>
+                                <div class="draggable-item" draggable="true" data-item="correct">Important Documents</div>
+                                <div class="draggable-item" draggable="true" data-item="incorrect">Heavy Books</div>
+                                <div class="draggable-item" draggable="true" data-item="correct">Torch & Batteries</div>
+                                <div class="draggable-item" draggable="true" data-item="correct">Dry Food Items</div>
+                            </div>
+                            <div id="emergency-kit-dropzone" class="min-h-[200px] rounded-lg p-4 space-y-2">
+                                <p class="text-center text-slate-400 font-semibold">DROP ITEMS HERE</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-8">
+                        <div class="mission-step h-48" id="mission-step-2"><div class="mission-step-inner"><div class="mission-step-front"><h4 class="text-xl font-bold">Step 2: Secure Home</h4></div><div class="mission-step-back">✔️<h4 class="text-xl font-bold">Step Complete!</h4></div></div></div>
+                        <div class="mission-step h-48" id="mission-step-3"><div class="mission-step-inner"><div class="mission-step-front"><h4 class="text-xl font-bold">Step 3: Evacuation Route</h4></div><div class="mission-step-back">✔️<h4 class="text-xl font-bold">Step Complete!</h4></div></div></div>
+                    </div>
+                </div>
+                <div id="mission-complete-msg" class="hidden text-center mt-12 bg-green-900 border-2 border-green-500 text-white p-8 rounded-2xl max-w-3xl mx-auto">
+                    <h3 class="text-3xl font-bold mb-2">Mission Complete! Flood Ready Badge Unlocked!</h3>
+                    <p>Great job! You've learned how to pack an emergency kit and prepare for a flood. You're a true Aapda Sathi!</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="virtual-drill" class="py-20 text-white"><div class="container mx-auto px-6"><div class="text-center mb-12"><h3 class="text-4xl font-bold mb-3">Practice Your Skills: Live Earthquake Drill</h3><p class="text-slate-300 max-w-3xl mx-auto text-lg">This is a safe space to practice. Let's walk through a scenario together. Respond as quickly as you can.</p></div><div class="max-w-2xl mx-auto card rounded-2xl shadow-2xl p-8 drill-card" id="drill-card"></div></div></section>
+        
+        <section id="emergency-contacts" class="py-20"><div class="container mx-auto px-6"><div class="text-center mb-16"><h3 class="text-4xl font-bold mb-3 text-white">Urgent & Local Contacts</h3><p class="text-slate-300 max-w-3xl mx-auto text-lg">Key emergency numbers for Dehradun, Uttarakhand. Always call for help when you are safe.</p></div><div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            <div class="card p-6 rounded-xl text-center border-red-500 border-2"><h4 class="text-xl font-bold text-red-400">National Emergency</h4><p class="text-3xl font-extrabold text-white mt-2">112</p></div>
+            <div class="card p-6 rounded-xl text-center"><h4 class="text-xl font-bold text-slate-300">Police</h4><p class="text-3xl font-extrabold text-white mt-2">100</p></div>
+            <div class="card p-6 rounded-xl text-center"><h4 class="text-xl font-bold text-slate-300">Fire & Rescue</h4><p class="text-3xl font-extrabold text-white mt-2">101</p></div>
+            <div class="card p-6 rounded-xl text-center"><h4 class="text-xl font-bold text-slate-300">Ambulance</h4><p class="text-3xl font-extrabold text-white mt-2">102</p></div>
+            <div class="card p-6 rounded-xl text-center border-teal-400 border"><h4 class="text-lg font-bold text-teal-300">State Disaster Mgmt</h4><p class="text-2xl font-extrabold text-white mt-2">0135-2710334</p></div>
+            <div class="card p-6 rounded-xl text-center border-teal-400 border"><h4 class="text-lg font-bold text-teal-300">District Disaster Mgmt</h4><p class="text-2xl font-extrabold text-white mt-2">0135-2726066</p></div>
+        </div></div></section>
+
+        <section id="ai-tools" class="py-20"><div class="container mx-auto px-6"><div class="text-center mb-16"><h3 class="text-4xl font-bold mb-3 text-white">Your Intelligent Safety Partner</h3><p class="text-slate-300 max-w-3xl mx-auto text-lg">Using Gemini AI, we provide smart tools to make preparedness planning easier and more effective.</p></div>
+        <div class="grid lg:grid-cols-2 gap-12">
+            <div class="card p-8 rounded-2xl shadow-2xl">
+                <h4 class="text-2xl font-bold mb-4 text-white">✨ Create a Family Emergency Plan</h4>
+                <p class="text-slate-300 mb-6">Protect your loved ones. Enter a few details and our AI will generate a personalized emergency plan for your household.</p>
+                <div class="space-y-4">
+                    <input type="number" id="numAdults" placeholder="Number of Adults" class="w-full p-3 bg-slate-700 text-white border border-slate-600 rounded-md">
+                    <input type="number" id="numChildren" placeholder="Number of Children" class="w-full p-3 bg-slate-700 text-white border border-slate-600 rounded-md">
+                    <input type="text" id="pets" placeholder="Any Pets? (e.g., 1 dog)" class="w-full p-3 bg-slate-700 text-white border border-slate-600 rounded-md">
+                    <input type="text" id="specialNeeds" placeholder="Special Needs (e.g., medication, elderly)" class="w-full p-3 bg-slate-700 text-white border border-slate-600 rounded-md">
+                </div>
+                <button id="createPlanBtn" class="mt-6 w-full bg-orange-500 text-white font-bold py-3 px-4 rounded-md hover:bg-orange-600 transition">Generate My Plan</button>
+                <div id="planLoader" class="loader hidden"></div>
+                <div id="planResult" class="gemini-response hidden"></div>
+            </div>
+            <div class="card p-8 rounded-2xl shadow-2xl">
+                <h4 class="text-2xl font-bold mb-4 text-white">✨ Crisis Communication Assistant</h4>
+                <p class="text-slate-300 mb-6">For administrators. Describe a situation and get instant, professionally drafted announcements for any audience.</p>
+                <div class="space-y-4">
+                    <textarea id="crisisSituation" placeholder="Describe the situation... (e.g., Water logging near East gate)" class="w-full p-3 bg-slate-700 text-white border border-slate-600 rounded-md" rows="3"></textarea>
+                    <select id="messageAudience" class="w-full p-3 bg-slate-700 text-white border border-slate-600 rounded-md">
+                        <option>Parents (SMS Alert)</option>
+                        <option>Staff (Email)</option>
+                        <option>Students (Campus Announcement)</option>
+                    </select>
+                </div>
+                <button id="draftMessageBtn" class="mt-4 w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-md hover:bg-teal-700 transition">Draft Communication</button>
+                <div id="messageLoader" class="loader hidden"></div>
+                <div id="messageResult" class="gemini-response hidden"></div>
+            </div>
+        </div></div></section>
+        
+        <section id="impact" class="py-20"><div class="container mx-auto px-6 text-center"><div class="text-center mb-16"><h3 class="text-4xl font-bold mb-3 text-white">Real Growth, Real Safety</h3><p class="text-slate-300 max-w-3xl mx-auto text-lg">Our goal is to create a measurable shift from uncertainty to confidence, building resilience across every campus.</p></div><div class="max-w-4xl mx-auto card p-8 rounded-2xl shadow-2xl"><div class="mb-6"><button id="beforeBtn" class="bg-teal-600 text-white px-6 py-2 rounded-md font-semibold">Before Aapda Sathi</button><button id="afterBtn" class="bg-slate-700 text-slate-300 px-6 py-2 rounded-md font-semibold">After Aapda Sathi</button></div><canvas id="impactChart"></canvas></div></div></section>
+    </main>
+    
+    <footer class="bg-transparent text-slate-400 py-12 mt-10 border-t border-slate-700"><div class="container mx-auto px-6 text-center"><p>&copy; 2025 Aapda Sathi. A Smart India Hackathon Initiative.</p></div></footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            Chart.defaults.color = '#e2e8f0';
+            Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.2)';
+
+            const preparednessCtx = document.getElementById('preparednessChart').getContext('2d');
+            new Chart(preparednessCtx, { type: 'bar', data: { labels: ['Current Preparedness', 'With Aapda Sathi'], datasets: [{ label: 'Preparedness Score (%)', data: [25, 85], backgroundColor: ['#475569', '#009688'], borderRadius: 8, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, grid: { display: false } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
+            
+            const impactData = { before: { data: [30, 45, 40], colors: ['#475569', '#64748b', '#94a3b8'] }, after: { data: [90, 95, 88], colors: ['#00796b', '#009688', '#4db6ac'] } };
+            const impactCtx = document.getElementById('impactChart').getContext('2d');
+            let impactChart = new Chart(impactCtx, { type: 'doughnut', data: { labels: ['Drill Participation', 'Module Completion', 'Awareness Score'], datasets: [{ data: impactData.before.data, backgroundColor: impactData.before.colors, hoverOffset: 8, borderColor: '#102a43' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Key Performance Indicators (Before)', font: { size: 18 } } } } });
+            const beforeBtn = document.getElementById('beforeBtn'); const afterBtn = document.getElementById('afterBtn');
+            function updateImpactChart(data, colors, label, activeBtn, inactiveBtn) { impactChart.data.datasets[0].data = data; impactChart.options.plugins.title.text = `Key Performance Indicators (${label})`; impactChart.data.datasets[0].backgroundColor = colors; impactChart.update(); activeBtn.classList.add('bg-teal-600', 'text-white'); activeBtn.classList.remove('bg-slate-700', 'text-slate-300'); inactiveBtn.classList.add('bg-slate-700', 'text-slate-300'); inactiveBtn.classList.remove('bg-teal-600', 'text-white'); }
+            beforeBtn.addEventListener('click', () => updateImpactChart(impactData.before.data, impactData.before.colors, 'Before', beforeBtn, afterBtn));
+            afterBtn.addEventListener('click', () => updateImpactChart(impactData.after.data, impactData.after.colors, 'After', afterBtn, beforeBtn));
+            
+            const apiKey = ""; const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            async function callGeminiAPI(payload, loaderEl, resultEl) { 
+                loaderEl.classList.remove('hidden'); 
+                resultEl.classList.add('hidden');
+                try { 
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); 
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); 
+                    const result = await response.json(); 
+                    const candidate = result.candidates?.[0]; 
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        resultEl.textContent = candidate.content.parts[0].text;
+                    } else {
+                         throw new Error("Invalid API response.");
+                    }
+                } catch (error) { 
+                    console.error("API call failed:", error); 
+                    resultEl.textContent = "Sorry, our AI partner is currently unavailable. Please try again soon.";
+                } finally {
+                    loaderEl.classList.add('hidden');
+                    resultEl.classList.remove('hidden');
+                }
+            }
+
+            document.getElementById('createPlanBtn').addEventListener('click', async () => {
+                const numAdults = document.getElementById('numAdults').value || 'some';
+                const numChildren = document.getElementById('numChildren').value || 'some';
+                const pets = document.getElementById('pets').value || 'no';
+                const specialNeeds = document.getElementById('specialNeeds').value || 'none';
+                const prompt = `Create a personalized family emergency plan for a household in Dehradun, India. Details: ${numAdults} adults, ${numChildren} children. Pets: ${pets}. Special considerations: ${specialNeeds}. The plan should be simple, actionable, and organized into three sections: 1. What to Discuss, 2. What to Pack in a 'Go-Bag', 3. What to Do During the Emergency. Use clear headings and bullet points.`;
+                await callGeminiAPI({ contents: [{ parts: [{ text: prompt }] }] }, document.getElementById('planLoader'), document.getElementById('planResult'));
+            });
+
+            document.getElementById('draftMessageBtn').addEventListener('click', async () => {
+                const crisisSituation = document.getElementById('crisisSituation').value;
+                if (!crisisSituation) {
+                    alert('Please describe the situation.');
+                    return;
+                }
+                const audience = document.getElementById('messageAudience').value;
+                const messageType = audience.split('(')[1].replace(')', ''); // Extracts SMS Alert, Email etc.
+                const prompt = `Act as a school administrator during a crisis. The situation is: "${crisisSituation}". Draft a clear, calm, and concise ${messageType} for the intended audience (${audience.split(' ')[0]}). The message must state the situation, the immediate action being taken, and the next expected update. Keep it brief and professional.`;
+                await callGeminiAPI({ contents: [{ parts: [{ text: prompt }] }] }, document.getElementById('messageLoader'), document.getElementById('messageResult'));
+            });
+
+            const drillCard = document.getElementById('drill-card'); 
+            let currentStep = 0; 
+            let timerInterval;
+            let drillPerformance = [];
+
+            function resetDrill() {
+                currentStep = 0;
+                drillPerformance = [];
+                renderDrillStep();
+            }
+
+            const drillSteps = [ 
+                { type: 'intro', title: 'Earthquake Drill: Let\'s Practice', text: 'You\'re in a classroom on the second floor. Let\'s walk through what to do when you feel the ground start to shake. You\'re safe here. Ready to begin?', button: 'I\'m Ready, Start the Drill' }, 
+                { type: 'choice', title: 'Step 1: The Shaking Starts', text: 'The shaking is intense. Books are falling from shelves. What\'s your very first move?', choices: [{ text: 'Run towards the exit', correct: false, feedback: 'That\'s a common instinct, but running during a quake is dangerous. Let\'s try a safer option.' }, { text: 'Drop, Cover, and Hold On under a sturdy desk', correct: true, feedback: 'Excellent! That\'s exactly right. You\'re protecting yourself from falling objects.' }, { text: 'Stand in the doorway', correct: false, feedback: 'Good thought, but that\'s outdated advice. You\'re much safer under a sturdy piece of furniture.' }], duration: 10 }, 
+                { type: 'choice', title: 'Step 2: After the Shaking', text: 'The shaking stops. A fire alarm begins to blare. What is the best thing to do now?', choices: [ { text: 'Use the elevator to get out quickly', correct: false, feedback: 'It\'s best to avoid elevators after an earthquake, as they could be damaged or lose power.' }, { text: 'Follow your teacher\'s lead and calmly take the stairs to evacuate', correct: true, feedback: 'Perfect. Staying calm and following instructions helps everyone get out safely.' }, { text: 'Call your parents on your mobile', correct: false, feedback: 'Your first priority is getting to a safe place. It\'s important to keep phone lines free for emergency services.' }], duration: 15 }, 
+                { type: 'contacts', title: 'Step 3: Getting Help', text: 'You\'re outside at the safe assembly point. A classmate has a bad cut and needs medical attention. Who is the best to call for help?', highlight: 'Ambulance', button: 'Finish Drill & Get My Debrief' }, 
+                { type: 'summary', title: 'Drill Complete! Generating Your Debrief...', text: 'You did a great job. Now, let\'s see how you did and find ways to get even better. Our AI is preparing your personalized feedback.', button: 'Practice Again' } 
+            ];
+            
+            async function getAIDebrief() {
+                const performanceSummary = drillPerformance.map(p => `For the question '${p.question}', the user chose '${p.answer}' which was ${p.correct ? 'correct' : 'incorrect'}.`).join(' ');
+                const prompt = `A user has just completed a virtual earthquake drill. Here is their performance: ${performanceSummary}. Provide a brief, encouraging debrief in 2-3 short paragraphs. Start with a positive comment. Then, give two specific, actionable tips for improvement based on their mistakes. End with an empowering statement about practice making them safer.`;
+                
+                drillCard.innerHTML = `<h3 class="text-3xl font-bold text-center mb-4">${drillSteps[drillSteps.length-1].title}</h3><p class="text-slate-300 text-center mb-8">${drillSteps[drillSteps.length-1].text}</p><div id="debriefLoader" class="loader"></div><div id="debriefResult" class="gemini-response text-left hidden"></div><button id="drill-action-btn" class="hidden mt-6 w-full bg-orange-500 text-white font-bold py-3 px-4 rounded-md hover:bg-orange-600 transition">${drillSteps[drillSteps.length-1].button}</button>`;
+                
+                const debriefResultEl = document.getElementById('debriefResult');
+                const debriefLoaderEl = document.getElementById('debriefLoader');
+                const actionBtn = document.getElementById('drill-action-btn');
+
+                await callGeminiAPI({ contents: [{ parts: [{ text: prompt }] }] }, debriefLoaderEl, debriefResultEl);
+                
+                actionBtn.classList.remove('hidden');
+                actionBtn.addEventListener('click', resetDrill);
+            }
+
+            function startTimer(duration, display) { let timer = duration; display.textContent = `Time: ${timer}s`; timerInterval = setInterval(() => { timer--; display.textContent = `Time: ${timer}s`; if (timer <= 0) { clearInterval(timerInterval); display.textContent = "Time's up!"; handleChoice(null); } }, 1000); }
+            
+            function handleChoice(choice) { 
+                clearInterval(timerInterval); 
+                const choicesContainer = drillCard.querySelector('#choices-container'); 
+                const feedbackContainer = drillCard.querySelector('#feedback-container'); 
+                
+                const questionText = drillSteps[currentStep].text;
+                let performanceEntry = { question: questionText, answer: "Time ran out!", correct: false };
+
+                if (choicesContainer) { 
+                    const allButtons = choicesContainer.querySelectorAll('button'); 
+                    allButtons.forEach(btn => btn.disabled = true); 
+                    if (choice) { 
+                        const chosenBtn = allButtons[choice.index]; 
+                        chosenBtn.classList.add(choice.correct ? 'correct' : 'incorrect'); 
+                        feedbackContainer.innerHTML = `<p class="font-bold mt-4 ${choice.correct ? 'text-green-300' : 'text-red-300'}">${choice.feedback}</p>`;
+                        performanceEntry = { question: questionText, answer: choice.text, correct: choice.correct };
+                    } else { 
+                        feedbackContainer.innerHTML = `<p class="text-yellow-300 font-bold mt-4">Time ran out! In an emergency, quick decisions are key.</p>`; 
+                    } 
+                }
+                drillPerformance.push(performanceEntry);
+
+                if (currentStep < drillSteps.length - 2) {
+                    setTimeout(() => { currentStep++; renderDrillStep(); }, 3500);
+                } else {
+                     setTimeout(() => { currentStep++; getAIDebrief(); }, 3500);
+                }
+            }
+
+            function renderDrillStep() { 
+                const step = drillSteps[currentStep]; 
+                drillCard.innerHTML = ''; 
+                if (step.type === 'intro') { 
+                    drillCard.innerHTML = `<h3 class="text-3xl font-bold text-center mb-4">${step.title}</h3><p class="text-slate-300 text-center mb-8">${step.text}</p><button id="drill-action-btn" class="w-full bg-orange-500 text-white font-bold py-3 px-4 rounded-md hover:bg-orange-600 transition">${step.button}</button>`; 
+                    document.getElementById('drill-action-btn').addEventListener('click', () => { currentStep = 1; renderDrillStep(); }); 
+                } else if (step.type === 'contacts') { 
+                    drillCard.innerHTML = `<h3 class="text-3xl font-bold text-center mb-4">${step.title}</h3><p class="text-slate-300 text-center mb-8">${step.text}</p><button id="drill-action-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-md hover:bg-green-700 transition">${step.button}</button>`; 
+                    document.getElementById('drill-action-btn').addEventListener('click', () => { 
+                        document.getElementById('emergency-contacts').scrollIntoView({ behavior: 'smooth' });
+                        getAIDebrief();
+                    }); 
+                } else if (step.type === 'choice') { 
+                    drillCard.classList.add('shake-effect'); 
+                    setTimeout(() => drillCard.classList.remove('shake-effect'), 500); 
+                    drillCard.innerHTML = `<div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold">${step.title}</h3><div id="timer" class="text-lg font-semibold bg-slate-800 px-4 py-1 rounded-full"></div></div><p class="text-slate-300 mb-6 text-lg">${step.text}</p><div id="choices-container" class="space-y-4"></div><div id="feedback-container" class="min-h-[50px]"></div>`; 
+                    step.choices.forEach((choice, index) => { 
+                        const button = document.createElement('button'); 
+                        button.textContent = choice.text; 
+                        button.className = 'w-full text-left p-4 rounded-lg font-semibold drill-choice-btn'; 
+                        button.addEventListener('click', () => handleChoice({ ...choice, index })); 
+                        drillCard.querySelector('#choices-container').appendChild(button); 
+                    }); 
+                    startTimer(step.duration, drillCard.querySelector('#timer')); 
+                } 
+            }
+            renderDrillStep();
+
+            // GAMIFIED MISSION LOGIC
+            const progressBar = document.getElementById('mission-progress-bar');
+            const missionSteps = { kitPacked: false, homeSecured: false, routeKnown: false };
+            const totalSteps = Object.keys(missionSteps).length;
+            let completedSteps = 0;
+
+            function updateMissionProgress() {
+                completedSteps = Object.values(missionSteps).filter(Boolean).length;
+                const progress = (completedSteps / totalSteps) * 100;
+                progressBar.style.width = `${progress}%`;
+
+                if (completedSteps === totalSteps) {
+                    document.getElementById('mission-complete-msg').classList.remove('hidden');
+                }
+            }
+            
+            // Drag and Drop Logic
+            const draggables = document.querySelectorAll('.draggable-item');
+            const dropzone = document.getElementById('emergency-kit-dropzone');
+            let correctItemsInKit = 0;
+            const requiredCorrectItems = 5;
+
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', () => { draggable.classList.add('dragging'); });
+                draggable.addEventListener('dragend', () => { draggable.classList.remove('dragging'); });
+            });
+
+            dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+            dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('drag-over'); });
+            dropzone.addEventListener('drop', e => {
+                e.preventDefault();
+                const draggable = document.querySelector('.dragging');
+                dropzone.classList.remove('drag-over');
+
+                if (draggable) {
+                    if (draggable.dataset.item === 'correct') {
+                        dropzone.appendChild(draggable);
+                        draggable.setAttribute('draggable', 'false');
+                        draggable.style.cursor = 'default';
+                        draggable.style.backgroundColor = 'rgba(46, 125, 50, 0.5)';
+                        correctItemsInKit++;
+                        
+                        if (correctItemsInKit >= requiredCorrectItems) {
+                            missionSteps.kitPacked = true;
+                            setTimeout(() => { document.getElementById('mission-step-2').classList.add('is-flipped'); missionSteps.homeSecured = true; updateMissionProgress(); }, 500);
+                            setTimeout(() => { document.getElementById('mission-step-3').classList.add('is-flipped'); missionSteps.routeKnown = true; updateMissionProgress(); }, 1000);
+                        }
+                    } else {
+                        draggable.style.backgroundColor = 'rgba(211, 47, 47, 0.5)'; 
+                        setTimeout(() => { draggable.style.backgroundColor = '#1e293b'; }, 1000);
+                    }
+                }
+                 updateMissionProgress();
+            });
+        });
+    </script>
+</body>
+</html>
+
+
